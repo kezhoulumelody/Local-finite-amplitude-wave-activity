@@ -12,6 +12,7 @@ Chen et al (2015):
 Local finite-amplitude wave activity as an objective diagnostic of midlatitude extreme weather
 doi:10.1002/2015GL066959."
 """
+
 def find_index(ll, ls):
     """
     Find the index of user defined longitude or latitude
@@ -265,8 +266,8 @@ latb[-1] = 90
 latb[1:-1] = 0.5 * (latt[0:-1] + latt[1:])
 
 dirout = '/<your output directory>/'
-qz_big = np.zeros([ntime, len(lat)]) # the Eulerian zonal mean of the surface potential temperature
-Qe_big = np.zeros(qz_big.shape) # The largrangian zonal mean of the surface potential temperature
+qz_big = np.zeros([ntime, len(lat)]) # the Eulerian zonal mean of Z500
+Qe_big = np.zeros(qz_big.shape) # The largrangian zonal mean of Z500
 Ae_big = np.zeros(qz_big.shape) # The wave activity
 dQdy_big = np.zeros(qz_big.shape) # Meridional gradient of the Largrangian zonal mean of Z500
 AeLp_big = np.zeros([ntime, len(lat), len(lon)]) # The local wave activity above Qe contour
@@ -284,9 +285,87 @@ for nk in range(ntime):
     qz_big[nk, :] = qz
     Qe_big[nk, :] = Qe
     Ae_big[nk, :] = Ae 
-    d
+    dQdy_big[nk, :] = dQdy
     AeLp_big[nk, :, :] = AeLp.T
     AeLm_big[nk, :, :] = AeLm.T
     dYLm_big[nk, :, :] = dYLm.T 
     dYLp_big[nk, :, :] = dYLp.T
+
+# Save the output as netCDF file 
+casename = dirout+'<your output file name>'
+ncfile = Dataset(casename, mode='w', format='NETCDF4')
+lat_dim = ncfile.createDimension('lat', len(lat))     # latitude axis
+lon_dim = ncfile.createDimension('lon', len(lon))    # longitude axis
+time_dim = ncfile.createDimension('time', len(time))
+
+nlat = ncfile.createVariable('lat', 'f8', ('lat',))
+nlat.units = 'degrees_north'
+nlat.long_name = 'latitude'
+nlat.standard_name = 'latitude'
+nlat.axis = 'X'
+
+nlon = ncfile.createVariable('lon', 'f8', ('lon',))
+nlon.units = 'degrees_east'
+nlon.long_name = 'longitude'
+nlon.standard_name = 'longitude'
+nlon.axis = 'Y'
+
+nT = ncfile.createVariable('time', 'f8', ('time',))
+nT.units = 'days since 1950-01-01 00:00:00'
+nT.long_name = 'time'
+nT.standard_name = 'time'
+nT.calendar = 'noleap'
+nT.axis='T'
+
+nqz = ncfile.createVariable('qz', 'f8', ('time', 'lat')) # time dimension sits in the leftmost
+nqz.units = 'm'
+nqz.standard_name = 'Eulerian-mean Z500'
+
+nqe = ncfile.createVariable('Qe', 'f8', ('time', 'lat')) # time dimension sits in the leftmost
+nqe.units = 'm'
+nqe.standard_name = 'Lagrangian-mean Z500'
+
+nqy = ncfile.createVariable('dQedy', 'f8', ('time', 'lat')) # time dimension sits in the leftmost
+nqy.units = 'm / m'
+nqy.standard_name = 'Meridional gradient of Lagrangian-mean Z500'
+
+nae = ncfile.createVariable('Ae', 'f8', ('time', 'lat')) # time dimension sits in the leftmost
+nae.units = 'm*m'
+nae.standard_name = 'Wave activity of Z500'
+
+nalp = ncfile.createVariable('AeLp', 'f8', ('time', 'lat', 'lon')) # time dimension sits in the leftmost
+nalp.units = 'm*m'
+nalp.standard_name = 'Local Wave activity of Z500 - up'
+
+nalm = ncfile.createVariable('AeLm', 'f8', ('time', 'lat', 'lon')) # time dimension sits in the leftmost
+nalm.units = 'm*m'
+nalm.standard_name = 'Local Wave activity of Z500 - below'
+
+nyp = ncfile.createVariable('dYLp', 'f8', ('time', 'lat', 'lon')) # time dimension sits in the leftmost
+nyp.units = 'm'
+nyp.standard_name = 'Latitudinal displacement around equivalent latitude - up'
+
+nym = ncfile.createVariable('dYLm', 'f8', ('time', 'lat', 'lon')) # time dimension sits in the leftmost
+nym.units = 'm'
+nym.standard_name = 'Latitudinal displacement around equivalent latitude - below'
+
+nlat[:] = lat
+nlon[:] = lon
+nT[:] = time
+nqz[:] = qz_big
+nqe[:] = Qe_big
+nae[:] = Ae_big
+nalp[:] = AeLp_big
+nalm[:] = AeLm_big
+nyp[:] = dYLp_big
+nym[:] = dYLm_big
+nqy[:] = dQdy_big
+
+ncfile.close()
+
+
+
+
+
+
 
