@@ -241,3 +241,52 @@ def tracer_eq_1var_2d_local4(lon, lat, lonb, latb, q_tracer, sort_direct='ascend
     return qz, Qe, Ae, dQedY, AeL, AeLp, AeLm, dYLm, dYLp, dQedY 
 
 ######### Here is an example of calculating LWA-Z500 using codes above ############ 
+# read in the lat lon and Z3 daily results  
+file = '/<your directory>/<your netCDF file name>'
+nc = Dataset(file, 'r')
+latt = nc['lat'][:] # rearange the array so that latitude increases with indexs
+lon = nc['lon'][:]
+la = find_index(latt, 20)
+lb = find_index(latt, 90) # only compute Northern Hemisphere (tropics should be exculded)
+lat = latt[la:lb+1] 
+Z500 = nc['Z500'][:,la:lb+1, :]
+time = nc['time'][:]
+ntime = len(time)
+
+dlon = 0.5 * abs(lon[1] - lon[0])
+lonb = np.zeros([len(lon)+1])
+lonb[0] = lon[0] - dlon
+lonb[-1] = lon[-1] + dlon
+lonb[1:-1] = 0.5 * (lon[0:-1] + lon[1:])
+
+latb = np.zeros([len(latt)+1])
+latb[0] = -90 
+latb[-1] = 90
+latb[1:-1] = 0.5 * (latt[0:-1] + latt[1:])
+
+dirout = '/<your output directory>/'
+qz_big = np.zeros([ntime, len(lat)]) # the Eulerian zonal mean of the surface potential temperature
+Qe_big = np.zeros(qz_big.shape) # The largrangian zonal mean of the surface potential temperature
+Ae_big = np.zeros(qz_big.shape) # The wave activity
+dQdy_big = np.zeros(qz_big.shape) # Meridional gradient of the Largrangian zonal mean of Z500
+AeLp_big = np.zeros([ntime, len(lat), len(lon)]) # The local wave activity above Qe contour
+AeLm_big = np.zeros([ntime, len(lat), len(lon)]) # The local wave activity below Qe contour
+dYLm_big = np.zeros([ntime, len(lat), len(lon)])
+dYLp_big = np.zeros([ntime, len(lat), len(lon)]) 
+ 
+# Calculate LWA for each time step using for loop
+for nk in range(ntime):
+    tq = Z500[nk, :, :]
+    theta = tq.T
+
+    # calculate the wave activity
+    qz, Qe, Ae, dQedY, AeL, AeLp, AeLm, dYLm, dYLp, dQdy = tracer_eq_1var_2d_local4(lon, lat, lonb, latb[la:lb+2], theta, sort_direct='descend')
+    qz_big[nk, :] = qz
+    Qe_big[nk, :] = Qe
+    Ae_big[nk, :] = Ae 
+    d
+    AeLp_big[nk, :, :] = AeLp.T
+    AeLm_big[nk, :, :] = AeLm.T
+    dYLm_big[nk, :, :] = dYLm.T 
+    dYLp_big[nk, :, :] = dYLp.T
+
